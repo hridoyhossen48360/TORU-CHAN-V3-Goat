@@ -16,9 +16,28 @@ module.exports = {
 
 		const ping = Date.now() - event.timestamp;
 		const day = new Date().toLocaleString("en-US", { weekday: "long" });
-		const BOTNAME = global.GoatBot.config.nickNameBot || "KakashiBot";
+		const BOTNAME = global.GoatBot.config.nickNameBot || "✦ 𝙏𝙊𝙍𝙐 𝘾𝙃𝘼𝙉 ✦";
 		const BOTPREFIX = global.GoatBot.config.prefix;
 		const GROUPPREFIX = utils.getPrefix(event.threadID);
+
+
+const loadingStages = [
+      "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐏𝐫𝐞𝐟𝐢𝐱...\n▰▱▱▱▱▱▱▱▱▱ 10%",
+      "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐏𝐫𝐞𝐟𝐢𝐱...\n▰▰▰▱▱▱▱▱▱▱ 30%",
+      "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐏𝐫𝐞𝐟𝐢𝐱...\n▰▰▰▰▰▱▱▱▱▱ 50%",
+      "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐏𝐫𝐞𝐟𝐢𝐱...\n▰▰▰▰▰▰▰▱▱▱ 70%",
+      "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐏𝐫𝐞𝐟𝐢𝐱...\n▰▰▰▰▰▰▰▰▰▱ 90%",
+      "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐏𝐫𝐞𝐟𝐢𝐱...\n▰▰▰▰▰▰▰▰▰▰ 100%"
+    ];
+
+    let loadingMsg = await api.sendMessage({ body: loadingStages[0] }, event.threadID);
+    for (let i = 1; i < loadingStages.length; i++) {
+      await new Promise(r => setTimeout(r, 600));
+      try { await api.editMessage(loadingStages[i], loadingMsg.messageID); } catch {}
+    }
+    try { await api.unsendMessage(loadingMsg.messageID); } catch {}
+
+
 
 		// GIF list
 		const gifs = [
