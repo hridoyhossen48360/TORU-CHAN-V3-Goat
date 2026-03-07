@@ -1,128 +1,135 @@
-const axios = require("axios");
-const money = require("../../utils/money"); // ⚠️ path ঠিক করবি
 
-const mahmud = async () => {
-  const base = await axios.get("https://raw.githubusercontent.com/mahmudx7/HINATA/main/baseApiUrl.json");
-  return base.data.mahmud;
-};
+const axios = require("axios");
+const money = require("../../utils/money"); // path ঠিক করো GoatBot structure অনুযায়ী
 
 module.exports = {
   config: {
     name: "quiz",
     aliases: ["qz"],
-    version: "1.7",
-    author: "MahMUD",
+    version: "1.2",
+    author: "Kakashi)",
     countDown: 10,
     role: 0,
-    description: {
-      bn: "সাধারণ জ্ঞান কুইজ খেলে কয়েন এবং এক্সপি জিতুন",
-      en: "Play general knowledge quiz to win coins and exp",
-      vi: "Chơi trò chơi đố vui kiến thức để giành được xu và exp"
-    },
     category: "Game",
-    guide: {
-      bn: '   {pn} en: ইংরেজি কুইজ\n   {pn} bn: বাংলা কুইজ',
-      en: '   {pn} en: English quiz\n   {pn} bn: Bangla quiz',
-      vi: '   {pn} en: Câu đố tiếng Anh\n   {pn} bn: Câu đố tiếng Bengal'
-    }
+    guide: { en: "{pn} — Answer quiz questions and earn rewards!" }
   },
 
-  langs: {
-    bn: {
-      reply: "𝐑𝐞𝐩𝐥𝐲 𝐰𝐢𝐭𝐡 𝐲𝐨𝐮𝐫 𝐚𝐧𝐬𝐰𝐞𝐫.",
-      correct: "✅ | একদম সঠিক উত্তর বেবি!\n\nতুমি জিতেছো %1 কয়েন এবং %2 এক্সপি।",
-      wrong: "❌ | উত্তরটি ভুল হয়েছে বেবি!\n\nসঠিক উত্তর ছিল: %1",
-      notYour: "× বেবি, এটি তোমার কুইজ নয়! নিজের জন্য শুরু করো। >🐸",
-      error: "× সমস্যা হয়েছে: %1। প্রয়োজনে Contact Kakashi"
-    },
-    en: {
-      reply: "𝐑𝐞𝐩𝐥𝐲 𝐰𝐢𝐭𝐡 𝐲𝐨𝐮𝐫 𝐚𝐧𝐬𝐰𝐞𝐫.",
-      correct: "✅ | Correct answer baby!\n\nYou earned %1 coins & %2 exp.",
-      wrong: "❌ | Wrong answer baby!\n\nThe correct answer was: %1",
-      notYour: "𝐓𝐡𝐢𝐬 𝐢𝐬 𝐧𝐨𝐭 𝐲𝐨𝐮𝐫 𝐪𝐮𝐢𝐳 𝐛𝐚𝐛𝐲 >🐸",
-      error: "× API error: %1. Contact Kakashi for help."
-    },
-    vi: {
-      reply: "Trả lời bằng đáp án của bạn đi cưng",
-      correct: "✅ | Đáp án chính xác cưng ơi!\n\nBạn nhận được %1 xu & %2 exp.",
-      wrong: "❌ | Sai rồi cưng ơi!\n\n💡 Đáp án đúng là: %1",
-      notYour: "× Đây không phải câu đố của bạn cưng à! >🐸",
-      error: "× Lỗi: %1. Liên hệ Kakashi để được hỗ trợ."
-    }
-  },
-
-  onStart: async function ({ api, event, args, getLang }) {
-    const authorName = String.fromCharCode(77, 97, 104, 77, 85, 68); 
-    if (this.config.author !== authorName) {
-      return api.sendMessage("You are not authorized to change the author name.", event.threadID, event.messageID);
-    }
-
+  onStart: async function ({ api, event }) {
     try {
-      const input = args.join("").toLowerCase();
-      const category = input === "en" || input === "english" ? "english" : "bangla";
+      const GITHUB_RAW = "https://raw.githubusercontent.com/Saim-x69x/sakura/main/ApiUrl.json";
+      const rawRes = await axios.get(GITHUB_RAW);
+      const quizApiBase = rawRes.data.apiv1;
 
-      const apiUrl = await mahmud();
-      const res = await axios.get(`${apiUrl}/api/quiz?category=${category}`);
-      const quiz = res.data;
+      const { data } = await axios.get(`${quizApiBase}/api/quiz`);
+      const { question, options, answer } = data;
 
-      if (!quiz) return api.sendMessage("× No quiz available baby.", event.threadID, event.messageID);
+      const body = `╭──❖   𝐐𝐔𝐈𝐙  𝐆𝐀𝐌𝐄   ❖──╮
 
-      const { question, correctAnswer, options } = quiz;
-      const { a, b, c, d } = options;
+📜 প্রশ্ন: ${question}
 
-      const quizMsg = `\n╭──✦ ${question}\n`
-        + `├‣ 𝗔) ${a}\n`
-        + `├‣ 𝗕) ${b}\n`
-        + `├‣ 𝗖) ${c}\n`
-        + `├‣ 𝗗) ${d}\n`
-        + `╰──────────────────‣\n`
-        + `${getLang("reply")}`;
+🅐 ${options.a}
+🅑 ${options.b}
+🅒 ${options.c}
+🅓 ${options.d}
 
-      api.sendMessage(quizMsg, event.threadID, (error, info) => {
-        global.GoatBot.onReply.set(info.messageID, {
-          type: "reply",
-          commandName: this.config.name,
-          author: event.senderID,
-          messageID: info.messageID,
-          correctAnswer
-        });
+────────────────
+💡 ৩ বার চেষ্টা করতে পারবে!
+(Reply দাও A, B, C বা D)
+╰───────────────╯`;
 
-        setTimeout(() => {
-          api.unsendMessage(info.messageID);
-        }, 40000);
-      }, event.messageID);
+      api.sendMessage(
+        { body },
+        event.threadID,
+        async (err, info) => {
+          if (err) return console.error(err);
 
-    } catch (error) {
-      api.sendMessage(getLang("error", error.message), event.threadID, event.messageID);
+          global.GoatBot.onReply.set(info.messageID, {
+            commandName: "quiz",
+            messageID: info.messageID,
+            author: event.senderID,
+            correctAnswer: answer.trim(),
+            chances: 3,
+            options
+          });
+
+          // auto remove after 60 sec
+          setTimeout(async () => {
+            if (global.GoatBot.onReply.has(info.messageID)) {
+              try { await api.unsendMessage(info.messageID); } catch {}
+              global.GoatBot.onReply.delete(info.messageID);
+            }
+          }, 60000);
+        },
+        event.messageID
+      );
+    } catch (err) {
+      console.error(err);
+      api.sendMessage("❌ কুইজ ডাটা আনতে সমস্যা হয়েছে!", event.threadID, event.messageID);
     }
   },
 
-  onReply: async function ({ event, api, Reply, usersData, getLang }) {
-    const { correctAnswer, author } = Reply;
+  onReply: async function ({ api, event, Reply, usersData }) {
+    let { author, correctAnswer, messageID, chances, options } = Reply;
+    const reply = event.body?.trim().toUpperCase();
+
     if (event.senderID !== author)
-      return api.sendMessage(getLang("notYour"), event.threadID, event.messageID);
+      return api.sendMessage("⚠️ এটা তোমার কুইজ না!", event.threadID, event.messageID);
 
-    const userReply = event.body.trim().toLowerCase();
-    const rewardCoins = 500;
-    const rewardExp = 121;
+    if (!reply || !["A", "B", "C", "D"].includes(reply))
+      return api.sendMessage("❌ Reply দাও শুধু A, B, C বা D দিয়ে!", event.threadID, event.messageID);
 
-    await api.unsendMessage(Reply.messageID);
+    const selectedText =
+      reply === "A" ? options.a :
+      reply === "B" ? options.b :
+      reply === "C" ? options.c :
+      reply === "D" ? options.d : "";
 
-    if (userReply === correctAnswer.toLowerCase()) {
-      // ✅ money.js দিয়ে টাকা add
-      money.add(author, rewardCoins);
+    if (selectedText.trim().toLowerCase() === correctAnswer.trim().toLowerCase()) {
+      try { await api.unsendMessage(messageID); } catch {}
 
-      // exp আগের মত usersData তেই
-      const userData = await usersData.get(author);
-      await usersData.set(author, {
-        money: userData.money,
+      const rewardCoin = 300;
+      const rewardExp = 100;
+
+      // ✅ Correct coins via money.js
+      await money.add(event.senderID, rewardCoin);
+
+      // ✅ Add exp
+      const userData = await usersData.get(event.senderID);
+      await usersData.set(event.senderID, {
+        money: userData.money, // money already added via money.js
         exp: userData.exp + rewardExp,
         data: userData.data
       });
 
-      return api.sendMessage(getLang("correct", rewardCoins, rewardExp), event.threadID, event.messageID);
+      const correctMsg = `╭──✅  𝐐𝐔𝐈𝐙 𝐑𝐄𝐒𝐔𝐋𝐓  ✅──╮
+│ অবস্থা     : সঠিক উত্তর!
+│ উত্তর       : ${correctAnswer}
+│ পুরস্কার   : +${rewardCoin} Coin
+│ অভিজ্ঞতা   : +${rewardExp} EXP
+│ 🏆 তুমি দুর্দান্ত করেছো!
+╰───────────────╯`;
+
+      global.GoatBot.onReply.delete(messageID);
+      return api.sendMessage(correctMsg, event.threadID, event.messageID);
     } else {
-      return api.sendMessage(getLang("wrong", correctAnswer), event.threadID, event.messageID);
+      chances--;
+
+      if (chances > 0) {
+        global.GoatBot.onReply.set(messageID, { ...Reply, chances });
+        return api.sendMessage(
+          `❌ ভুল উত্তর!\n🔁 তোমার হাতে আছে ${chances} বার সুযোগ! আবার চেষ্টা করো!`,
+          event.threadID,
+          event.messageID
+        );
+      } else {
+        try { await api.unsendMessage(messageID); } catch {}
+        global.GoatBot.onReply.delete(messageID);
+        return api.sendMessage(
+          `😢 সব সুযোগ শেষ!\n✅ সঠিক উত্তর ছিল ➤ ${correctAnswer}`,
+          event.threadID,
+          event.messageID
+        );
+      }
     }
   }
 };

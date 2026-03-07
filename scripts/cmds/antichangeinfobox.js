@@ -1,222 +1,241 @@
+const fs = require("fs-extra");
+const path = require("path");
 const { getStreamFromURL, uploadImgbb } = global.utils;
 
+const antiPath = path.join(process.cwd(), "database", "data", "anti.json");
+
+if (!fs.existsSync(path.dirname(antiPath))) {
+  fs.mkdirSync(path.dirname(antiPath), { recursive: true });
+}
+
+if (!fs.existsSync(antiPath)) {
+  fs.writeJsonSync(antiPath, {}, { spaces: 2 });
+}
+
 module.exports = {
-	config: {
-		name: "antichangeinfobox",
-		version: "1.9",
-		author: "NTKhang",
-		countDown: 5,
-		role: 0,
-		description: {
-			vi: "Bật tắt chức năng chống thành viên đổi thông tin box chat của bạn",
-			en: "Turn on/off anti change info box"
-		},
-		category: "Group",
-		guide: {
-			vi: "   {pn} avt [on | off]: chống đổi avatar box chat"
-				+ "\n   {pn} name [on | off]: chống đổi tên box chat"
-				+ "\n   {pn} nickname [on | off]: chống đổi nickname trong box chat"
-				+ "\n   {pn} theme [on | off]: chống đổi theme (chủ đề) box chat"
-				+ "\n   {pn} emoji [on | off]: chống đổi trạng emoji box chat",
-			en: "   {pn} avt [on | off]: anti change avatar box chat"
-				+ "\n   {pn} name [on | off]: anti change name box chat"
-				+ "\n   {pn} nickname [on | off]: anti change nickname in box chat"
-				+ "\n   {pn} theme [on | off]: anti change theme (chủ đề) box chat"
-				+ "\n   {pn} emoji [on | off]: anti change emoji box chat"
-		}
-	},
+  config: {
+    name: "antichangeinfobox",
+    version: "10.2", // Updated version for fixes
+    author: "Hridoy + Sabah + Full Nickname Fix + Additional Fixes",
+    role: 1,
+    category: "Admin",
+    shortDescription: "Anti-Change Group Protection + Lock + Nickname Fix",
+    longDescription: "Protect group name, avatar, theme, emoji, nicknames, join/out with backup and lock system.",
+    guide: {
+      en: "{pn} → open menu\nReply with number 1-7 to toggle or 'lock' to toggle all"
+    }
+  },
 
-	langs: {
-		vi: {
-			antiChangeAvatarOn: "Đã bật chức năng chống đổi avatar box chat",
-			antiChangeAvatarOff: "Đã tắt chức năng chống đổi avatar box chat",
-			missingAvt: "Bạn chưa đặt avatar cho box chat",
-			antiChangeNameOn: "Đã bật chức năng chống đổi tên box chat",
-			antiChangeNameOff: "Đã tắt chức năng chống đổi tên box chat",
-			antiChangeNicknameOn: "Đã bật chức năng chống đổi nickname box chat",
-			antiChangeNicknameOff: "Đã tắt chức năng chống đổi nickname box chat",
-			antiChangeThemeOn: "Đã bật chức năng chống đổi theme (chủ đề) box chat",
-			antiChangeThemeOff: "Đã tắt chức năng chống đổi theme (chủ đề) box chat",
-			antiChangeEmojiOn: "Đã bật chức năng chống đổi emoji box chat",
-			antiChangeEmojiOff: "Đã tắt chức năng chống đổi emoji box chat",
-			antiChangeAvatarAlreadyOn: "Hiện tại box chat của bạn đang bật chức năng cấm thành viên đổi avatar",
-			antiChangeAvatarAlreadyOnButMissingAvt: "Hiện tại box chat của bạn đang bật chức năng cấm thành viên đổi avatar box chat chưa được đặt avatar",
-			antiChangeNameAlreadyOn: "Hiện tại box chat của bạn đang bật chức năng cấm thành viên đổi tên",
-			antiChangeNicknameAlreadyOn: "Hiện tại box chat của bạn đang bật chức năng cấm thành viên đổi nickname",
-			antiChangeThemeAlreadyOn: "Hiện tại box chat của bạn đang bật chức năng cấm thành viên đổi theme (chủ đề)",
-			antiChangeEmojiAlreadyOn: "Hiện tại box chat của bạn đang bật chức năng cấm thành viên đổi emoji"
-		},
-		en: {
-			antiChangeAvatarOn: "Turn on anti change avatar box chat",
-			antiChangeAvatarOff: "Turn off anti change avatar box chat",
-			missingAvt: "You have not set avatar for box chat",
-			antiChangeNameOn: "Turn on anti change name box chat",
-			antiChangeNameOff: "Turn off anti change name box chat",
-			antiChangeNicknameOn: "Turn on anti change nickname box chat",
-			antiChangeNicknameOff: "Turn off anti change nickname box chat",
-			antiChangeThemeOn: "Turn on anti change theme box chat",
-			antiChangeThemeOff: "Turn off anti change theme box chat",
-			antiChangeEmojiOn: "Turn on anti change emoji box chat",
-			antiChangeEmojiOff: "Turn off anti change emoji box chat",
-			antiChangeAvatarAlreadyOn: "Your box chat is currently on anti change avatar",
-			antiChangeAvatarAlreadyOnButMissingAvt: "Your box chat is currently on anti change avatar but your box chat has not set avatar",
-			antiChangeNameAlreadyOn: "Your box chat is currently on anti change name",
-			antiChangeNicknameAlreadyOn: "Your box chat is currently on anti change nickname",
-			antiChangeThemeAlreadyOn: "Your box chat is currently on anti change theme",
-			antiChangeEmojiAlreadyOn: "Your box chat is currently on anti change emoji"
-		}
-	},
+  onStart: async function ({ message, event }) {
+    const { threadID, senderID } = event;
+    let data = fs.readJsonSync(antiPath);
 
-	onStart: async function ({ message, event, args, threadsData, getLang }) {
-		if (!["on", "off"].includes(args[1]))
-			return message.SyntaxError();
-		const { threadID } = event;
-		const dataAntiChangeInfoBox = await threadsData.get(threadID, "data.antiChangeInfoBox", {});
-		async function checkAndSaveData(key, data) {
-			// dataAntiChangeInfoBox[key] = args[1] === "on" ? data : false;
-			if (args[1] === "off")
-				delete dataAntiChangeInfoBox[key];
-			else
-				dataAntiChangeInfoBox[key] = data;
+    if (!data[threadID]) {
+      data[threadID] = {
+        name: false,
+        avatar: false,
+        nickname: false,
+        theme: false,
+        emoji: false,
+        join: false,
+        out: false,
+        lock: false,
+        backup: {}
+      };
+      fs.writeJsonSync(antiPath, data, { spaces: 2 });
+    }
 
-			await threadsData.set(threadID, dataAntiChangeInfoBox, "data.antiChangeInfoBox");
-			message.reply(getLang(`antiChange${key.slice(0, 1).toUpperCase()}${key.slice(1)}${args[1].slice(0, 1).toUpperCase()}${args[1].slice(1)}`));
-		}
-		switch (args[0]) {
-			case "avt":
-			case "avatar":
-			case "image": {
-				const { imageSrc } = await threadsData.get(threadID);
-				if (!imageSrc)
-					return message.reply(getLang("missingAvt"));
-				const newImageSrc = await uploadImgbb(imageSrc);
-				await checkAndSaveData("avatar", newImageSrc.image.url);
-				break;
-			}
-			case "name": {
-				const { threadName } = await threadsData.get(threadID);
-				await checkAndSaveData("name", threadName);
-				break;
-			}
-			case "nickname": {
-				const { members } = await threadsData.get(threadID);
-				await checkAndSaveData("nickname", members.map(user => ({ [user.userID]: user.nickname })).reduce((a, b) => ({ ...a, ...b }), {}));
-				break;
-			}
-			case "theme": {
-				const { threadThemeID } = await threadsData.get(threadID);
-				await checkAndSaveData("theme", threadThemeID);
-				break;
-			}
-			case "emoji": {
-				const { emoji } = await threadsData.get(threadID);
-				await checkAndSaveData("emoji", emoji);
-				break;
-			}
-			default: {
-				return message.SyntaxError();
-			}
-		}
-	},
+    const status = (v) => (v ? "🟢 ON" : "🔴 OFF");
 
-	onEvent: async function ({ message, event, threadsData, role, api, getLang }) {
-		const { threadID, logMessageType, logMessageData, author } = event;
-		switch (logMessageType) {
-			case "log:thread-image": {
-				const dataAntiChange = await threadsData.get(threadID, "data.antiChangeInfoBox", {});
-				if (!dataAntiChange.avatar && role < 1)
-					return;
-				return async function () {
-					// check if user not is admin or bot then change avatar back
-					if (role < 1 && api.getCurrentUserID() !== author) {
-						if (dataAntiChange.avatar != "REMOVE") {
-							message.reply(getLang("antiChangeAvatarAlreadyOn"));
-							api.changeGroupImage(await getStreamFromURL(dataAntiChange.avatar), threadID);
-						}
-						else {
-							message.reply(getLang("antiChangeAvatarAlreadyOnButMissingAvt"));
-						}
-					}
-					// else save new avatar
-					else {
-						const imageSrc = logMessageData.url;
-						if (!imageSrc)
-							return await threadsData.set(threadID, "REMOVE", "data.antiChangeInfoBox.avatar");
+    const menu = `
+╭────────〔 ANTI SYSTEM 〕
+│
+│ 1 → Anti Name     : ${status(data[threadID].name)}
+│ 2 → Anti Avatar   : ${status(data[threadID].avatar)}
+│ 3 → Anti Nickname : ${status(data[threadID].nickname)}
+│ 4 → Anti Theme    : ${status(data[threadID].theme)}
+│ 5 → Anti Emoji    : ${status(data[threadID].emoji)}
+│ 6 → Anti Join     : ${status(data[threadID].join)}
+│ 7 → Anti Out      : ${status(data[threadID].out)}
+│ 🔒 lock → All toggle: ${status(data[threadID].lock)}
+│
+╰───────────────
+Reply with a number (1-7) or 'lock'`;
 
-						const newImageSrc = await uploadImgbb(imageSrc);
-						await threadsData.set(threadID, newImageSrc.image.url, "data.antiChangeInfoBox.avatar");
-					}
-				};
-			}
-			case "log:thread-name": {
-				const dataAntiChange = await threadsData.get(threadID, "data.antiChangeInfoBox", {});
-				// const name = await threadsData.get(threadID, "data.antiChangeInfoBox.name");
-				// if (name == false)
-				if (!dataAntiChange.hasOwnProperty("name"))
-					return;
-				return async function () {
-					if (role < 1 && api.getCurrentUserID() !== author) {
-						message.reply(getLang("antiChangeNameAlreadyOn"));
-						api.setTitle(dataAntiChange.name, threadID);
-					}
-					else {
-						const threadName = logMessageData.name;
-						await threadsData.set(threadID, threadName, "data.antiChangeInfoBox.name");
-					}
-				};
-			}
-			case "log:user-nickname": {
-				const dataAntiChange = await threadsData.get(threadID, "data.antiChangeInfoBox", {});
-				// const nickname = await threadsData.get(threadID, "data.antiChangeInfoBox.nickname");
-				// if (nickname == false)
-				if (!dataAntiChange.hasOwnProperty("nickname"))
-					return;
-				return async function () {
-					const { nickname, participant_id } = logMessageData;
+    message.reply(menu, (err, info) => {
+      if (err) return;
+      global.GoatBot.onReply.set(info.messageID, {
+        commandName: this.config.name,
+        author: senderID,
+        threadID
+      });
+    });
+  },
 
-					if (role < 1 && api.getCurrentUserID() !== author) {
-						message.reply(getLang("antiChangeNicknameAlreadyOn"));
-						api.changeNickname(dataAntiChange.nickname[participant_id], threadID, participant_id);
-					}
-					else {
-						await threadsData.set(threadID, nickname, `data.antiChangeInfoBox.nickname.${participant_id}`);
-					}
-				};
-			}
-			case "log:thread-color": {
-				const dataAntiChange = await threadsData.get(threadID, "data.antiChangeInfoBox", {});
-				// const themeID = await threadsData.get(threadID, "data.antiChangeInfoBox.theme");
-				// if (themeID == false)
-				if (!dataAntiChange.hasOwnProperty("theme"))
-					return;
-				return async function () {
-					if (role < 1 && api.getCurrentUserID() !== author) {
-						message.reply(getLang("antiChangeThemeAlreadyOn"));
-						api.changeThreadColor(dataAntiChange.theme || "196241301102133", threadID); // 196241301102133 is default color
-					}
-					else {
-						const threadThemeID = logMessageData.theme_id;
-						await threadsData.set(threadID, threadThemeID, "data.antiChangeInfoBox.theme");
-					}
-				};
-			}
-			case "log:thread-icon": {
-				const dataAntiChange = await threadsData.get(threadID, "data.antiChangeInfoBox", {});
-				// const emoji = await threadsData.get(threadID, "data.antiChangeInfoBox.emoji");
-				// if (emoji == false)
-				if (!dataAntiChange.hasOwnProperty("emoji"))
-					return;
-				return async function () {
-					if (role < 1 && api.getCurrentUserID() !== author) {
-						message.reply(getLang("antiChangeEmojiAlreadyOn"));
-						api.changeThreadEmoji(dataAntiChange.emoji, threadID);
-					}
-					else {
-						const threadEmoji = logMessageData.thread_icon;
-						await threadsData.set(threadID, threadEmoji, "data.antiChangeInfoBox.emoji");
-					}
-				};
-			}
-		}
-	}
+  onReply: async function ({ api, event, message }) {
+    const { threadID, body } = event;
+    const choice = body.trim().toLowerCase();
+    let data = fs.readJsonSync(antiPath);
+    if (!data[threadID]) return;
+    if (!data[threadID].backup) data[threadID].backup = {};
+
+    const keyMap = {
+      "1": "name",
+      "2": "avatar",
+      "3": "nickname",
+      "4": "theme",
+      "5": "emoji",
+      "6": "join",
+      "7": "out"
+    };
+
+    // LOCK system
+    if (choice === "lock") {
+      const newLockState = !data[threadID].lock;
+      data[threadID].lock = newLockState;
+      for (const k of Object.values(keyMap)) data[threadID][k] = newLockState;
+
+      // Backup if turning ON
+      if (newLockState) {
+        const threadInfo = await api.getThreadInfo(threadID).catch(() => null);
+        if (threadInfo) {
+          try {
+            data[threadID].backup.name = threadInfo.threadName || "";
+            if (threadInfo.imageSrc) {
+              const img = await uploadImgbb(threadInfo.imageSrc).catch(() => null);
+              data[threadID].backup.avatar = img?.image?.url || "";
+            }
+            data[threadID].backup.nickname = { ...threadInfo.nicknames };
+            data[threadID].backup.theme = threadInfo.color || ""; // Use color if threadThemeID not available
+            data[threadID].backup.emoji = threadInfo.emoji || "";
+          } catch (e) {
+            console.log("[Anti Lock] Backup error:", e);
+          }
+        }
+      }
+
+      fs.writeJsonSync(antiPath, data, { spaces: 2 });
+      return message.reply(`🔒 Lock ${newLockState ? "ENABLED" : "DISABLED"} → All protections toggled`);
+    }
+
+    // Individual toggle
+    if (!["1","2","3","4","5","6","7"].includes(choice)) {
+      return message.reply("❌ Please reply with a valid number (1-7) or 'lock'");
+    }
+
+    const key = keyMap[choice];
+    data[threadID][key] = !data[threadID][key];
+
+    // Backup when turning ON individual
+    if (data[threadID][key]) {
+      const threadInfo = await api.getThreadInfo(threadID).catch(() => null);
+      if (!threadInfo) return message.reply("⚠️ Cannot fetch group info");
+
+      try {
+        switch (key) {
+          case "name":
+            data[threadID].backup.name = threadInfo.threadName || "";
+            break;
+          case "avatar":
+            if (threadInfo.imageSrc) {
+              const img = await uploadImgbb(threadInfo.imageSrc).catch(() => null);
+              data[threadID].backup.avatar = img?.image?.url || "";
+            }
+            break;
+          case "nickname":
+            data[threadID].backup.nickname = { ...threadInfo.nicknames };
+            break;
+          case "theme":
+            data[threadID].backup.theme = threadInfo.color || "";
+            break;
+          case "emoji":
+            data[threadID].backup.emoji = threadInfo.emoji || "";
+            break;
+        }
+      } catch (e) { console.log("[Anti] Backup error:", e); }
+    }
+
+    fs.writeJsonSync(antiPath, data, { spaces: 2 });
+    await message.reply(`✅ ${data[threadID][key] ? "Enabled" : "Disabled"} → ${key.toUpperCase()} protection`);
+  },
+
+  onEvent: async function ({ api, event }) {
+    if (!event.logMessageType) return;
+    const { threadID, logMessageType, logMessageData, author } = event;
+    let data = fs.readJsonSync(antiPath);
+    if (!data[threadID] || !data[threadID].backup) return;
+
+    const config = data[threadID];
+    const backup = config.backup;
+    const botID = api.getCurrentUserID();
+    if (author === botID) return;
+
+    try {
+      switch (logMessageType) {
+        case "log:thread-name":
+          if (config.name && backup.name !== undefined) await api.setTitle(backup.name, threadID);
+          break;
+        case "log:thread-image":
+          if (config.avatar && backup.avatar) {
+            const stream = await getStreamFromURL(backup.avatar).catch(() => null);
+            if (stream) await api.changeGroupImage(stream, threadID);
+          }
+          break;
+        case "log:thread-color":
+          if (config.theme && backup.theme) await api.changeThreadColor(backup.theme, threadID);
+          break;
+        case "log:thread-icon":
+          if (config.emoji && backup.emoji) await api.changeThreadEmoji(backup.emoji, threadID).catch(() => {});
+          break;
+
+        // ===== FIXED NICKNAME =====
+        case "log:user-nickname":
+          if (!config.nickname) break;
+
+          const changedUserID = logMessageData.participant_id;
+          if (!changedUserID || changedUserID === botID) break;
+
+          const originalNick = backup.nickname[changedUserID] || "";
+          // If no backup for this user (e.g., new member), skip
+          if (originalNick === undefined) break;
+
+          // Small delay to let FB apply the change
+          await new Promise(r => setTimeout(r, 700));
+
+          // Re-fetch fresh thread info for accuracy
+          const freshThreadInfo = await api.getThreadInfo(threadID).catch(() => null);
+          if (!freshThreadInfo) break;
+
+          const currentNick = freshThreadInfo.nicknames[changedUserID] || "";
+
+          if (currentNick !== originalNick) {
+            console.log(`[AntiNickname] Reverting \( {changedUserID} → " \){originalNick}" (was: "${currentNick}")`);
+            await api.changeNickname(originalNick, threadID, changedUserID).catch(err => {
+              console.log("[AntiNickname] Revert failed:", err.message);
+            });
+          }
+          break;
+
+        case "log:subscribe":
+          if (config.join && logMessageData.addedParticipants?.length) {
+            await new Promise(r => setTimeout(r, 800));
+            for (const user of logMessageData.addedParticipants) {
+              await api.removeUserFromGroup(user.userFbId, threadID).catch(() => {});
+            }
+          }
+          break;
+        case "log:unsubscribe":
+          if (config.out) {
+            const leaverID = logMessageData.leftParticipantFbId;
+            if (leaverID) {
+              await new Promise(r => setTimeout(r, 1200));
+              await api.addUserToGroup(leaverID, threadID).catch(() => {});
+            }
+          }
+          break;
+      }
+    } catch (err) {
+      console.log("[Anti Error]", logMessageType, err.message);
+    }
+  }
 };
